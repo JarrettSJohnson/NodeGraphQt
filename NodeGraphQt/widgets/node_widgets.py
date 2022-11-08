@@ -320,11 +320,11 @@ class NodeLineEdit(NodeBaseWidget):
         :meth:`NodeGraphQt.BaseNode.add_text_input`
     """
 
-    def __init__(self, parent=None, name='', label='', text=''):
+    def __init__(self, parent=None, name='', label='', text='', text_color=None):
         super(NodeLineEdit, self).__init__(parent, name, label)
         plt = self.palette()
         bg_color = plt.alternateBase().color().getRgb()
-        text_color = plt.text().color().getRgb()
+        text_color = text_color if text_color else plt.text().color().getRgb()
         text_sel_color = plt.highlightedText().color().getRgb()
         style_dict = {
             'QLineEdit': {

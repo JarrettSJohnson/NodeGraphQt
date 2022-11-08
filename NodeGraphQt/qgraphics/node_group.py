@@ -81,10 +81,10 @@ class GroupNodeItem(NodeItem):
         pen.setCapStyle(QtCore.Qt.RoundCap)
         painter.setBrush(QtCore.Qt.NoBrush)
         painter.setPen(pen)
-        painter.drawLines([rect_1.topRight(), rect_2.topRight(),
-                           rect_1.topRight(), rect_1.bottomRight(),
-                           rect_1.bottomRight(), rect_1.bottomLeft(),
-                           rect_1.bottomLeft(), rect_2.bottomLeft()])
+        painter.drawLine(rect_1.topRight(), rect_2.topRight())
+        painter.drawLine(rect_1.topRight(), rect_1.bottomRight())
+        painter.drawLine(rect_1.bottomRight(), rect_1.bottomLeft())
+        painter.drawLine(rect_1.bottomLeft(), rect_2.bottomLeft())
         painter.drawLine(rect_1.bottomRight(), rect_2.bottomRight())
 
         pen = QtGui.QPen(border_color, 0.8)
@@ -158,10 +158,10 @@ class GroupNodeItem(NodeItem):
         pen.setCapStyle(QtCore.Qt.RoundCap)
         painter.setBrush(QtCore.Qt.NoBrush)
         painter.setPen(pen)
-        painter.drawLines([rect_1.topRight(), rect_2.topRight(),
-                           rect_1.topRight(), rect_1.bottomRight(),
-                           rect_1.bottomRight(), rect_1.bottomLeft(),
-                           rect_1.bottomLeft(), rect_2.bottomLeft()])
+        painter.drawLine(rect_1.topRight(), rect_2.topRight())
+        painter.drawLine(rect_1.topRight(), rect_1.bottomRight())
+        painter.drawLine(rect_1.bottomRight(), rect_1.bottomLeft())
+        painter.drawLine(rect_1.bottomLeft(), rect_2.bottomLeft())
         painter.drawLine(rect_1.bottomRight(), rect_2.bottomRight())
 
         pen = QtGui.QPen(border_color, 0.8)

@@ -193,7 +193,7 @@ class BaseNode(NodeObject):
         widget.value_changed.connect(lambda k, v: self.set_property(k, v))
         self.view.add_widget(widget)
 
-    def add_text_input(self, name, label='', text='', tab=None):
+    def add_text_input(self, name, label='', text='', text_color='', tab=None):
         """
         Creates a custom property with the :meth:`NodeObject.create_property`
         function and embeds a :class:`PySide2.QtWidgets.QLineEdit` widget
@@ -211,7 +211,7 @@ class BaseNode(NodeObject):
         """
         self.create_property(
             name, text, widget_type=NODE_PROP_QLINEEDIT, tab=tab)
-        widget = NodeLineEdit(self.view, name, label, text)
+        widget = NodeLineEdit(self.view, name, label, text, text_color=text_color)
         widget.value_changed.connect(lambda k, v: self.set_property(k, v))
         self.view.add_widget(widget)
 
