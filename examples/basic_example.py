@@ -27,6 +27,9 @@ if __name__ == '__main__':
     # create graph controller.
     graph = NodeGraph()
 
+    # Add first : TODO: Fix
+    add_node_menu = graph.add_context_menu('add_node')
+
     # set up context menu for the node graph.
     graph.set_context_menu_from_file('../examples/hotkeys/hotkeys.json')
 

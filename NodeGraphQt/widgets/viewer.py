@@ -22,6 +22,12 @@ ZOOM_MIN = -0.95
 ZOOM_MAX = 2.0
 
 
+class NamedBaseMenu(BaseMenu):
+    def __init__(self, name, type, *args, **kwargs) -> None:
+        super().__init__(type, *args, **kwargs)
+        self.menu_name = name
+
+
 class NodeViewer(QtWidgets.QGraphicsView):
     """
     The widget interface used for displaying the scene and nodes.
@@ -109,6 +115,7 @@ class NodeViewer(QtWidgets.QGraphicsView):
 
         # context menus.
         self._ctx_graph_menu = BaseMenu('NodeGraph', self)
+        self._ctx_graph_menus = []  # NamedBaseMenu
         self._ctx_node_menu = BaseMenu('Nodes', self)
 
         if undo_stack:
@@ -143,6 +150,8 @@ class NodeViewer(QtWidgets.QGraphicsView):
         # workaround fix: Re-populate the QMenuBar so the QAction shotcuts don't
         #                 conflict with parent existing host app.
         self._ctx_menu_bar.addMenu(self._ctx_graph_menu)
+        for ctx in self._ctx_graph_menus:
+            self._ctx_menu_bar.addMenu(ctx)
         self._ctx_menu_bar.addMenu(self._ctx_node_menu)
         return super(NodeViewer, self).focusInEvent(event)
 
@@ -168,6 +177,8 @@ class NodeViewer(QtWidgets.QGraphicsView):
 
         # add the base menus.
         self._ctx_menu_bar.addMenu(self._ctx_graph_menu)
+        for ctx in self._ctx_graph_menus:
+            self._ctx_menu_bar.addMenu(ctx)
         self._ctx_menu_bar.addMenu(self._ctx_node_menu)
 
         # setup the undo and redo actions.
@@ -182,6 +193,9 @@ class NodeViewer(QtWidgets.QGraphicsView):
             self._ctx_graph_menu.addAction(self._undo_action)
             self._ctx_graph_menu.addAction(self._redo_action)
             self._ctx_graph_menu.addSeparator()
+
+    def add_graph_context_menu(self, name: str) -> None:
+        self._ctx_graph_menus.append(NamedBaseMenu(name, 'NodeGraph', self))
 
     def _set_viewer_zoom(self, value, sensitivity=None, pos=None):
         """
@@ -610,6 +624,12 @@ class NodeViewer(QtWidgets.QGraphicsView):
             self.ALT_state = True
             self.SHIFT_state = True
 
+        if self.SHIFT_state and event.key() == QtCore.Qt.Key_A:
+            add_node_menu = self.context_menus().get('add_node')
+            if add_node_menu:
+                cursor_pos = QtGui.QCursor.pos()
+                add_node_menu.exec_(cursor_pos)
+
         super(NodeViewer, self).keyPressEvent(event)
 
     def keyReleaseEvent(self, event):
@@ -975,7 +995,10 @@ class NodeViewer(QtWidgets.QGraphicsView):
         Returns:
             dict: viewer context menu.
         """
-        return {'graph': self._ctx_graph_menu, 'nodes': self._ctx_node_menu}
+        menus = {'graph': self._ctx_graph_menu, 'nodes': self._ctx_node_menu}
+        for ctx in self._ctx_graph_menus:
+            menus[ctx.menu_name] = ctx
+        return menus
 
     def question_dialog(self, text, title='Node Graph'):
         """

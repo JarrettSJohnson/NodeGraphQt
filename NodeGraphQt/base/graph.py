@@ -180,6 +180,9 @@ class NodeGraph(QtCore.QObject):
             self._context_menu['graph'] = NodeGraphMenu(self, menus['graph'])
         if menus.get('nodes'):
             self._context_menu['nodes'] = NodesMenu(self, menus['nodes'])
+        for menu_name, menu in menus.items():
+            if menu_name not in ('graph', 'nodes'):
+                self._context_menu[menu_name] = NodeGraphMenu(self, menu)
 
     def _register_builtin_nodes(self):
         """
@@ -704,6 +707,11 @@ class NodeGraph(QtCore.QObject):
         Returns:
             NodeGraphQt.NodeGraphMenu or NodeGraphQt.NodesMenu: context menu object.
         """
+        return self._context_menu.get(menu)
+
+    def add_context_menu(self, menu):
+        self._viewer.add_graph_context_menu(name=menu)
+        self._register_context_menu()
         return self._context_menu.get(menu)
 
     def _deserialize_context_menu(self, menu, menu_data):
