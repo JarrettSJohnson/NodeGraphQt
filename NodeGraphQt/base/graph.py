@@ -1132,7 +1132,7 @@ class NodeGraph(QtCore.QObject):
                 undo_label = 'create node: "{}"'.format(node.NODE_NAME)
                 self._undo_stack.beginMacro(undo_label)
                 for n in self.selected_nodes():
-                    n.set_property('selected', False, push_undo=True)
+                    n.set_property('selected', False)
                 self._undo_stack.push(undo_cmd)
                 self._undo_stack.endMacro()
             else:
