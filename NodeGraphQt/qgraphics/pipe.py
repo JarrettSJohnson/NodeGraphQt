@@ -96,7 +96,7 @@ class PipeItem(QtWidgets.QGraphicsPathItem):
             if not self._active:
                 pen.setColor(QtGui.QColor(*PipeEnum.DISABLED_COLOR.value))
                 pen.setStyle(PIPE_STYLES.get(PipeEnum.DRAW_TYPE_DOTTED.value))
-                pen.setWidth(pen.width() * 1.25)
+                pen.setWidthF(pen.width() * 1.25)
 
         painter.setPen(pen)
         painter.setBrush(self.brush())
@@ -424,7 +424,7 @@ class PipeItem(QtWidgets.QGraphicsPathItem):
             style (int): pipe style.
         """
         pen = self.pen()
-        pen.setWidth(width)
+        pen.setWidthF(width)
         pen.setColor(QtGui.QColor(*color))
         pen.setStyle(PIPE_STYLES.get(style))
         pen.setJoinStyle(QtCore.Qt.MiterJoin)
@@ -435,7 +435,7 @@ class PipeItem(QtWidgets.QGraphicsPathItem):
         pen = self._dir_pointer.pen()
         pen.setJoinStyle(QtCore.Qt.MiterJoin)
         pen.setCapStyle(QtCore.Qt.RoundCap)
-        pen.setWidth(width)
+        pen.setWidthF(width)
         pen.setColor(QtGui.QColor(*color))
         self._dir_pointer.setPen(pen)
         self._dir_pointer.setBrush(QtGui.QColor(*color).darker(200))
