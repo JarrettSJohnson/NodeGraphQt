@@ -16,7 +16,7 @@ Creating Nodes
 
     class MyNode(BaseNode):
 
-        __identifier__ = 'com.chantasticvfx'
+        __identifier__ = 'io.github.jchanvfx'
         NODE_NAME = 'my node'
 
         def __init__(self):
@@ -34,11 +34,12 @@ Creating Nodes
         node_graph.widget.show()
 
         # here we create a couple nodes in the node graph.
-        node_a = node_graph.create_node('com.chantasticvfx.MyNode', name='node a')
-        node_b = node_graph.create_node('com.chantasticvfx.MyNode', name='node b', pos=[300, 100])
+        node_a = node_graph.create_node('io.github.jchanvfx.MyNode', name='node a')
+        node_b = node_graph.create_node('io.github.jchanvfx.MyNode', name='node b', pos=[300, 100])
 
         app.exec_()
 
+|
 
 Creating Node Widgets
 *********************
@@ -53,7 +54,7 @@ example to simply embed a ``QComboBox`` widget when reimplementing the ``BaseNod
 
     class MyListNode(BaseNode):
 
-        __identifier__ = 'com.chantasticvfx'
+        __identifier__ = 'io.github.jchanvfx'
         NODE_NAME = 'node'
 
         def __init__(self):
@@ -79,6 +80,8 @@ To you update the widget you can call the
  - ``QLineEdit``: :meth:`NodeGraphQt.BaseNode.add_text_input`
 
 See: :ref:`Node Widgets` for more node widget types.
+
+|
 
 Embedding Custom Widgets
 ************************
@@ -174,7 +177,7 @@ Here's an example to embed a custom widget where we subclass the
         """
 
         # set a unique node identifier.
-        __identifier__ = 'com.chantasticvfx'
+        __identifier__ = 'io.github.jchanvfx'
 
         # set the initial default node name.
         NODE_NAME = 'my node'
@@ -189,6 +192,10 @@ Here's an example to embed a custom widget where we subclass the
             # add custom widget to node with "node.view" as the parent.
             node_widget = NodeWidgetWrapper(self.view)
             self.add_custom_widget(node_widget, tab='Custom')
+
+To hide/show the embedded widget on a :class:`NodeGraphQt.BaseNode` checkout the
+:meth:`NodeGraphQt.BaseNode.hide_widget` and :meth:`NodeGraphQt.BaseNode.show_widget`
+functions.
 
 
 Connecting Nodes
@@ -230,6 +237,7 @@ connecting nodes with the port objects:
         - :func:`NodeGraphQt.Port.connect_to`
         - :func:`NodeGraphQt.Port.disconnect_from`
 
+|
 
 Connecting a PropertiesBin
 **************************
@@ -246,7 +254,7 @@ Here's an example where we subclass the ``NodeGraph`` and connect it up to a
 
     class MyNode(BaseNode):
 
-        __identifier__ = 'com.chantasticvfx'
+        __identifier__ = 'io.github.jchanvfx'
         NODE_NAME = 'my node'
 
         def __init__(self):
@@ -283,7 +291,7 @@ Here's an example where we subclass the ``NodeGraph`` and connect it up to a
         node_graph.register_node(MyNode)
         node_graph.widget.show()
 
-        node_a = node_graph.create_node('com.chantasticvfx.MyNode')
+        node_a = node_graph.create_node('io.github.jchanvfx.MyNode')
 
         app.exec_()
 

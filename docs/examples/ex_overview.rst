@@ -9,13 +9,13 @@ User interface overview for the node graph.
 Navigation
 **********
 
-+---------------+----------------------------------------------+
-| action        | controls                                     |
-+===============+==============================================+
-| Zoom in/out   | *Alt + MMB + Drag* or *Mouse Scroll Up/Down* |
-+---------------+----------------------------------------------+
-| Pan           | *Alt + LMB + Drag* or *MMB + Drag*           |
-+---------------+----------------------------------------------+
++---------------+----------------------------------------------------+
+| action        | controls                                           |
++===============+====================================================+
+| Zoom In/Out   | ``Alt + MMB + Drag`` or ``Mouse Scroll Up/Down``   |
++---------------+----------------------------------------------------+
+| Pan           | ``Alt + LMB + Drag`` or ``MMB + Drag``             |
++---------------+----------------------------------------------------+
 
 Node Selection
 **************
@@ -33,11 +33,11 @@ Tab Search
 
 Nodes registered in the node graph can be created with the tab search widget.
 
-+-------------------+--------+
-| action            | hotkey |
-+===================+========+
-| Toggle Visibility | *Tab*  |
-+-------------------+--------+
++-------------------+----------+
+| action            | hotkey   |
++===================+==========+
+| Toggle Visibility | ``Tab``  |
++-------------------+----------+
 
 Pipe Slicing
 ************
@@ -47,32 +47,34 @@ Pipe Slicing
 
 Connection pipes can be disconnected easily with the built in slice tool.
 
-+---------------------+----------------------------+
-| action              | controls                   |
-+=====================+============================+
-| Slice connections   | *Alt + Shift + LMB + Drag* |
-+---------------------+----------------------------+
++---------------------+------------------------------+
+| action              | controls                     |
++=====================+==============================+
+| Slice Connections   | ``Alt + Shift + LMB + Drag`` |
++---------------------+------------------------------+
+
+Additional Info:
+    To disable or enable the pipe slicer see
+    :meth:`NodeGraphQt.NodeGraph.set_pipe_slicing`
 
 
-Getting Started
-***************
+Basic Setup
+***********
 
 Here's a basic example snippet for creating two nodes and connecting them together.
 
 .. code-block:: python
     :linenos:
 
-    import sys
-
     from Qt import QtWidgets
-    from NodeGraphQt import NodeGraph, BaseNode, setup_context_menu
+    from NodeGraphQt import NodeGraph, BaseNode
 
 
     # create a node class object inherited from BaseNode.
     class FooNode(BaseNode):
 
         # unique node identifier domain.
-        __identifier__ = 'com.chantasticvfx'
+        __identifier__ = 'io.github.jchanvfx'
 
         # initial default node name.
         NODE_NAME = 'Foo Node'
@@ -88,13 +90,10 @@ Here's a basic example snippet for creating two nodes and connecting them togeth
 
 
     if __name__ == '__main__':
-        app = QtWidgets.QApplication(sys.argv)
+        app = QtWidgets.QApplication([])
 
         # create node graph controller.
         graph = NodeGraph()
-
-        # set up default menu and commands.
-        setup_context_menu(graph)
 
         # register the FooNode node class.
         graph.register_node(FooNode)
@@ -104,11 +103,11 @@ Here's a basic example snippet for creating two nodes and connecting them togeth
         graph_widget.show()
 
         # create two nodes.
-        node_a = graph.create_node('com.chantasticvfx.FooNode', name='node A')
-        node_b = graph.create_node('com.chantasticvfx.FooNode', name='node B', pos=(300, 50))
+        node_a = graph.create_node('io.github.jchanvfx.FooNode', name='node A')
+        node_b = graph.create_node('io.github.jchanvfx.FooNode', name='node B', pos=(300, 50))
 
         # connect node_a to node_b
-        node_a.set_output(0, node_b.input(2))
+        node_a.set_output(0, node_b.input(0))
 
         app.exec_()
 

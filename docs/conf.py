@@ -16,9 +16,13 @@ import os
 import sys
 from datetime import datetime
 
+# make NodeGraphQt module available.
 base_path = os.path.abspath('.')
 root_path = os.path.split(base_path)[0]
 sys.path.insert(0, root_path)
+
+# required for the theme template.
+sys.path.insert(0, os.path.abspath('_themes'))
 
 import NodeGraphQt
 
@@ -43,12 +47,17 @@ version = '{0}.{1}'.format(*NodeGraphQt.VERSION.split('.'))
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    'autodocsumm',
     'sphinx.ext.autodoc',
     'sphinx.ext.autosectionlabel',
     'sphinx.ext.autosummary',
     'sphinx.ext.coverage',
+    'sphinx.ext.graphviz',
+    'sphinx.ext.inheritance_diagram',
     'sphinx.ext.intersphinx',
     'sphinx.ext.napoleon',
+    # theme template related
+    'sphinxawesome_theme'
 ]
 
 intersphinx_mapping = {
@@ -56,8 +65,25 @@ intersphinx_mapping = {
     'PySide2': ('https://doc.qt.io/qtforpython/', None),
 }
 
-# order of members.
-autodoc_member_order = 'groupwise'
+# inheritance diagram remapping.
+inheritance_alias = {
+    'NodeGraphQt.base.graph.NodeGraph': 'NodeGraphQt.NodeGraph',
+    'NodeGraphQt.base.graph.SubGraph': 'NodeGraphQt.SubGraph',
+    'NodeGraphQt.base.node.NodeObject': 'NodeGraphQt.NodeObject',
+    'NodeGraphQt.base.port.Port': 'NodeGraphQt.Port',
+    'NodeGraphQt.nodes.backdrop_node.BackdropNode': 'NodeGraphQt.BackdropNode',
+    'NodeGraphQt.nodes.base_node.BaseNode': 'NodeGraphQt.BaseNode',
+    'NodeGraphQt.nodes.base_node_circle.BaseNodeCircle': 'NodeGraphQt.BaseNodeCircle',
+    'NodeGraphQt.nodes.group_node.GroupNode': 'NodeGraphQt.GroupNode',
+}
+
+# autodoc options.
+autodoc_default_options = {
+    'autosummary': True,
+    'members': True,
+    'member-order': 'bysource',
+    'undoc-members': False,
+}
 
 # autosummary generate stubs.
 autosummary_generate = True
@@ -70,7 +96,7 @@ rst_prolog = '''
 '''.format(release)
 
 # Add any paths that contain templates here, relative to this directory.
-# templates_path = ['_templates']
+templates_path = ['_templates']
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
@@ -86,12 +112,12 @@ master_doc = 'index'
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = 'en'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', "_themes"]
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'monokai'
@@ -105,12 +131,12 @@ pygments_style = 'monokai'
 # It should be a Windows-style icon file (.ico), which is 16x16 or 32x32
 # pixels large. Default: None.
 html_favicon = '_images/favicon.png'
-html_logo = '_images/logo.png'
+html_logo = None
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-#
-html_theme = 'sphinx_rtd_theme'
+
+html_theme = 'sphinxawesome_theme'
 html_theme_path = ['_themes']
 html_show_sourcelink = False
 html_show_sphinx = False
@@ -118,7 +144,7 @@ html_context = {
     'display_github': True,
     'github_user': 'jchanvfx',
     'github_repo': 'NodeGraphQt',
-    'github_version': "master",
+    'github_version': "main",
     'conf_py_path': '/docs/',
     'source_suffix': '.rst',
 }
@@ -126,28 +152,25 @@ html_context = {
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
+html_title = 'NodeGraphQt'
 html_theme_options = {
-    # 'analytics_id': 'UA-XXXXXXX-1',  # Provided by Google in your dashboard
-    # 'analytics_anonymize_ip': False,
-    # 'logo_only': False,
-    # 'display_version': True,
-    # 'prev_next_buttons_location': 'both',
-    # 'style_external_links': False,
-    # 'vcs_pageview_mode': '',
-    # 'style_nav_header_background': 'white',
-
-    ### Toc options ###
-    # 'collapse_navigation': True,
-    # 'sticky_navigation': True,
-    # 'navigation_depth': 4,
-    # 'includehidden': True,
-    # 'titles_only': False
+    'logo_light': '_images/favicon.png',
+    'logo_dark': '_images/favicon.png',
+    'main_nav_links': {
+        'Source': 'https://github.com/jchanvfx/NodeGraphQt',
+        'Issues': 'https://github.com/jchanvfx/NodeGraphQt/issues',
+        'Releases': 'https://github.com/jchanvfx/NodeGraphQt/releases',
+    },
+    'show_scrolltop': True,
+    'show_prev_next': True,
+    'awesome_external_links': True,
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static', '_images']
+html_css_files = ['custom.css']
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.
@@ -158,10 +181,10 @@ html_static_path = ['_static', '_images']
 # 'searchbox.html']``.
 
 html_sidebars = {
-    '**': ['globaltoc.html',
-           'relations.html',
-           'sourcelink.html',
-           'searchbox.html']
+    '**': [
+        'sidebar_main_nav_links.html',
+        'sidebar_toc.html'
+    ]
 }
 
 
@@ -169,35 +192,6 @@ html_sidebars = {
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'NodeGraphQTdoc'
-
-
-# -- Options for LaTeX output ------------------------------------------------
-
-latex_elements = {
-    # The paper size ('letterpaper' or 'a4paper').
-    #
-    # 'papersize': 'letterpaper',
-
-    # The font size ('10pt', '11pt' or '12pt').
-    #
-    # 'pointsize': '10pt',
-
-    # Additional stuff for the LaTeX preamble.
-    #
-    # 'preamble': '',
-
-    # Latex figure (float) alignment
-    #
-    # 'figure_align': 'htbp',
-}
-
-# Grouping the document tree into LaTeX files. List of tuples
-# (source start file, target name, title,
-#  author, documentclass [howto, manual, or own class]).
-latex_documents = [
-    (master_doc, 'NodeGraphQT.tex', 'NodeGraphQt Documentation',
-     author, 'manual'),
-]
 
 
 # -- Options for manual page output ------------------------------------------

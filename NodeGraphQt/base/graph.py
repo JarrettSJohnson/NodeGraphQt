@@ -39,7 +39,8 @@ class NodeGraph(QtCore.QObject):
     The ``NodeGraph`` class is the main controller for managing all nodes
     and the node graph.
 
-    Inherited from: :class:`PySide2.QtCore.QObject`
+    .. inheritance-diagram:: NodeGraphQt.NodeGraph
+        :top-classes: PySide2.QtCore.QObject
 
     .. image:: _images/graph.png
         :width: 60%
@@ -121,8 +122,17 @@ class NodeGraph(QtCore.QObject):
     """
     Signal is triggered when session has been changed.
 
-    :parameters: :str
+    :parameters: str
     :emits: new session path
+    """
+    context_menu_prompt = QtCore.Signal(object, object)
+    """
+    Signal is triggered just before a context menu is shown.
+
+    :parameters: 
+        :class:`NodeGraphQt.NodeGraphMenu` or :class:`NodeGraphQt.NodesMenu`, 
+        :class:`NodeGraphQt.BaseNode`
+    :emits: triggered context menu, node object.
     """
 
     def __init__(self, parent=None, **kwargs):
@@ -135,6 +145,17 @@ class NodeGraph(QtCore.QObject):
         self.setObjectName('NodeGraph')
         self._model = (
             kwargs.get('model') or NodeGraphModel())
+        self._node_factory = (
+            kwargs.get('node_factory') or NodeFactory())
+        self._undo_view = None
+        self._undo_stack = (
+            kwargs.get('undo_stack') or QtWidgets.QUndoStack(self)
+        )
+        self._widget = None
+        self._sub_graphs = {}
+        self._viewer = (
+            kwargs.get('viewer') or NodeViewer(undo_stack=self._undo_stack)
+        )
 
         layout_direction = kwargs.get('layout_direction')
         if layout_direction:
@@ -143,21 +164,21 @@ class NodeGraph(QtCore.QObject):
             self._model.layout_direction = layout_direction
         else:
             layout_direction = self._model.layout_direction
-
-        self._node_factory = (
-            kwargs.get('node_factory') or NodeFactory())
-
-        self._undo_view = None
-        self._undo_stack = (
-            kwargs.get('undo_stack') or QtWidgets.QUndoStack(self))
-
-        self._widget = None
-
-        self._sub_graphs = {}
-
-        self._viewer = (
-            kwargs.get('viewer') or NodeViewer(undo_stack=self._undo_stack))
         self._viewer.set_layout_direction(layout_direction)
+
+        pipe_style = kwargs.get('pipe_style')
+        if pipe_style is not None:
+            if pipe_style not in [e.value for e in PipeLayoutEnum]:
+                pipe_style = PipeLayoutEnum.CURVED.value
+            self._model.pipe_style = pipe_style
+        else:
+            pipe_style = self._model.pipe_style
+        self._viewer.set_pipe_layout(pipe_style)
+
+        # viewer needs a reference to the model port connection constrains
+        # for the user interaction with the live pipe.
+        self._viewer.accept_connection_types = self._model.accept_connection_types
+        self._viewer.reject_connection_types = self._model.reject_connection_types
 
         self._context_menu = {}
 
@@ -211,6 +232,19 @@ class NodeGraph(QtCore.QObject):
         self._viewer.node_selection_changed.connect(
             self._on_node_selection_changed)
         self._viewer.data_dropped.connect(self._on_node_data_dropped)
+        self._viewer.context_menu_prompt.connect(self._on_context_menu_prompt)
+
+    def _on_context_menu_prompt(self, menu_name, node_id):
+        """
+        Slot function triggered just before a context menu is shown.
+
+        Args:
+            menu_name (str): context menu name.
+            node_id (str): node id if triggered from the nodes context menu.
+        """
+        node = self.get_node_by_id(node_id)
+        menu = self.get_context_menu(menu_name)
+        self.context_menu_prompt.emit(menu, node)
 
     def _on_insert_node(self, pipe, node_id, prev_node_pos):
         """
@@ -587,16 +621,17 @@ class NodeGraph(QtCore.QObject):
 
     def set_grid_mode(self, mode=None):
         """
-        Set node graph grid mode.
+        Set node graph background grid mode.
 
-        Note:
-            By default grid mode is set to "VIEWER_GRID_LINES".
+        (default: :attr:`NodeGraphQt.constants.ViewerEnum.GRID_DISPLAY_LINES`).
 
-            Node graph background types:
+        See: :attr:`NodeGraphQt.constants.ViewerEnum`
 
-            * :attr:`NodeGraphQt.constants.ViewerEnum.GRID_DISPLAY_NONE.value`
-            * :attr:`NodeGraphQt.constants.ViewerEnum.GRID_DISPLAY_DOTS.value`
-            * :attr:`NodeGraphQt.constants.ViewerEnum.GRID_DISPLAY_LINES.value`
+        .. code-block:: python
+            :linenos:
+
+            graph = NodeGraph()
+            graph.set_grid_mode(ViewerEnum.CURVED.value)
 
         Args:
             mode (int): background style.
@@ -697,7 +732,8 @@ class NodeGraph(QtCore.QObject):
         """
         Returns the context menu specified by the name.
 
-        Menu Types:
+        menu types:
+
             - ``"graph"`` context menu from the node graph.
             - ``"nodes"`` context menu for the nodes.
 
@@ -780,7 +816,7 @@ class NodeGraph(QtCore.QObject):
         """
         Populate a context menu from serialized data.
 
-        serialized menu data example:
+        example of serialized menu data:
 
         .. highlight:: python
         .. code-block:: python
@@ -788,20 +824,28 @@ class NodeGraph(QtCore.QObject):
             [
                 {
                     'type': 'menu',
-                    'label': 'test sub menu',
+                    'label': 'node sub menu',
                     'items': [
                         {
                             'type': 'command',
                             'label': 'test command',
                             'file': '../path/to/my/test_module.py',
                             'function': 'run_test',
-                            'shortcut': 'Ctrl+b',
                             'node_type': 'nodeGraphQt.nodes.MyNodeClass'
                         },
 
                     ]
                 },
             ]
+
+        the ``run_test`` example function:
+
+        .. highlight:: python
+        .. code-block:: python
+
+            def run_test(graph):
+                print(graph.selected_nodes())
+
 
         Args:
             menu_name (str): name of the parent context menu to populate under.
@@ -814,7 +858,8 @@ class NodeGraph(QtCore.QObject):
         """
         Populate a context menu from a serialized json file.
 
-        Menu Types:
+        menu types:
+
             - ``"graph"`` context menu from the node graph.
             - ``"nodes"`` context menu for the nodes.
 
@@ -837,7 +882,8 @@ class NodeGraph(QtCore.QObject):
         """
         Disable/Enable context menus from the node graph.
 
-        Menu Types:
+        menu types:
+
             - ``"all"`` all context menus from the node graph.
             - ``"graph"`` context menu from the node graph.
             - ``"nodes"`` context menu for the nodes.
@@ -868,9 +914,9 @@ class NodeGraph(QtCore.QObject):
         """
         return self._model.acyclic
 
-    def set_acyclic(self, mode=False):
+    def set_acyclic(self, mode=True):
         """
-        Enable the node graph to be a acyclic graph. (default: ``False``)
+        Enable the node graph to be a acyclic graph. (default: ``True``)
 
         See Also:
             :meth:`NodeGraph.acyclic`
@@ -879,7 +925,7 @@ class NodeGraph(QtCore.QObject):
             mode (bool): true to enable acyclic.
         """
         self._model.acyclic = mode
-        self._viewer.acyclic = mode
+        self._viewer.acyclic = self._model.acyclic
 
     def pipe_collision(self):
         """
@@ -908,23 +954,67 @@ class NodeGraph(QtCore.QObject):
             mode (bool): False to disable pipe collision.
         """
         self._model.pipe_collision = mode
-        self._viewer.pipe_collision = mode
+        self._viewer.pipe_collision = self._model.pipe_collision
+
+    def pipe_slicing(self):
+        """
+        Returns if pipe slicing is enabled.
+
+        See Also:
+            To enable/disable pipe slicer
+            :meth:`NodeGraph.set_pipe_slicing`
+
+        Returns:
+            bool: True if pipe slicing is enabled.
+        """
+        return self._model.pipe_slicing
+
+    def set_pipe_slicing(self, mode=True):
+        """
+        Enable/Disable pipe slicer.
+
+        When set to true holding down ``Alt + Shift + LMB Drag`` will allow node
+        pipe connections to be sliced.
+
+        .. image:: _images/slicer.png
+            :width: 400px
+
+        See Also:
+            :meth:`NodeGraph.pipe_slicing`
+
+        Args:
+            mode (bool): False to disable the slicer pipe.
+        """
+        self._model.pipe_slicing = mode
+        self._viewer.pipe_slicing = self._model.pipe_slicing
+
+    def pipe_style(self):
+        """
+        Returns the current pipe layout style.
+
+        See Also:
+            :meth:`NodeGraph.set_pipe_style`
+
+        Returns:
+            int: pipe style value. :attr:`NodeGraphQt.constants.PipeLayoutEnum`
+        """
+        return self._model.pipe_style
 
     def set_pipe_style(self, style=PipeLayoutEnum.CURVED.value):
         """
-        Set node graph pipes to be drawn as straight, curved or angled.
+        Set node graph pipes to be drawn as curved `(default)`, straight or angled.
+
+        .. code-block:: python
+            :linenos:
+
+            graph = NodeGraph()
+            graph.set_pipe_style(PipeLayoutEnum.CURVED.value)
+
+        See: :attr:`NodeGraphQt.constants.PipeLayoutEnum`
 
         .. image:: _images/pipe_layout_types.gif
             :width: 80%
 
-        Note:
-            By default pipe layout is set to "PIPE_LAYOUT_CURVED".
-
-            Pipe Layout Styles:
-
-            * :attr:`NodeGraphQt.constants.PipeLayoutEnum.CURVED.value`
-            * :attr:`NodeGraphQt.constants.PipeLayoutEnum.STRAIGHT.value`
-            * :attr:`NodeGraphQt.constants.PipeLayoutEnum.ANGLE.value`
 
         Args:
             style (int): pipe layout style.
@@ -933,6 +1023,7 @@ class NodeGraph(QtCore.QObject):
                         PipeLayoutEnum.STRAIGHT.value,
                         PipeLayoutEnum.ANGLE.value])
         style = style if 0 <= style <= pipe_max else PipeLayoutEnum.CURVED.value
+        self._model.pipe_style = style
         self._viewer.set_pipe_layout(style)
 
     def layout_direction(self):
@@ -947,7 +1038,7 @@ class NodeGraph(QtCore.QObject):
         Returns:
             int: layout direction.
         """
-        return self.model.layout_direction
+        return self._model.layout_direction
 
     def set_layout_direction(self, direction):
         """
@@ -957,21 +1048,20 @@ class NodeGraph(QtCore.QObject):
 
         `Implemented in` ``v0.3.0``
 
-        See Also:
-            :meth:`NodeGraph.layout_direction`,
-            :meth:`NodeObject.set_layout_direction`
+        **Layout Types:**
 
-        Note:
-            Node Graph Layout Types:
+        - :attr:`NodeGraphQt.constants.LayoutDirectionEnum.HORIZONTAL`
+        - :attr:`NodeGraphQt.constants.LayoutDirectionEnum.VERTICAL`
 
-            * :attr:`NodeGraphQt.constants.LayoutDirectionEnum.HORIZONTAL`
-            * :attr:`NodeGraphQt.constants.LayoutDirectionEnum.VERTICAL`
-
-            .. image:: _images/layout_direction_switch.gif
-                :width: 300px
+        .. image:: _images/layout_direction_switch.gif
+            :width: 300px
 
         Warnings:
             This function does not register to the undo stack.
+
+        See Also:
+            :meth:`NodeGraph.layout_direction`,
+            :meth:`NodeObject.set_layout_direction`
 
         Args:
             direction (int): layout direction.
@@ -1025,6 +1115,7 @@ class NodeGraph(QtCore.QObject):
         Args:
             nodes (list[NodeGraphQt.BaseNode]): a list of nodes.
         """
+        nodes = nodes or []
         self._viewer.center_selection([n.view for n in nodes])
 
     def center_selection(self):
@@ -1105,6 +1196,39 @@ class NodeGraph(QtCore.QObject):
                     node_attrs[node.type_][pname].update(pattrs)
                 self.model.set_node_common_properties(node_attrs)
 
+            accept_types = node.model.__dict__.pop(
+                '_TEMP_accept_connection_types'
+            )
+            for ptype, pdata in accept_types.get(node.type_, {}).items():
+                for pname, accept_data in pdata.items():
+                    for accept_ntype, accept_ndata in accept_data.items():
+                        for accept_ptype, accept_pnames in accept_ndata.items():
+                            for accept_pname in accept_pnames:
+                                self._model.add_port_accept_connection_type(
+                                    port_name=pname,
+                                    port_type=ptype,
+                                    node_type=node.type_,
+                                    accept_pname=accept_pname,
+                                    accept_ptype=accept_ptype,
+                                    accept_ntype=accept_ntype
+                                )
+            reject_types = node.model.__dict__.pop(
+                '_TEMP_reject_connection_types'
+            )
+            for ptype, pdata in reject_types.get(node.type_, {}).items():
+                for pname, reject_data in pdata.items():
+                    for reject_ntype, reject_ndata in reject_data.items():
+                        for reject_ptype, reject_pnames in reject_ndata.items():
+                            for reject_pname in reject_pnames:
+                                self._model.add_port_reject_connection_type(
+                                    port_name=pname,
+                                    port_type=ptype,
+                                    node_type=node.type_,
+                                    reject_pname=reject_pname,
+                                    reject_ptype=reject_ptype,
+                                    reject_ntype=reject_ntype
+                                )
+
             node.NODE_NAME = self.get_unique_name(name or node.NODE_NAME)
             node.model.name = node.NODE_NAME
             node.model.selected = selected
@@ -1169,6 +1293,39 @@ class NodeGraph(QtCore.QObject):
                 node_attrs[node.type_][pname].update(pattrs)
             self.model.set_node_common_properties(node_attrs)
 
+        accept_types = node.model.__dict__.pop(
+            '_TEMP_accept_connection_types'
+        )
+        for ptype, pdata in accept_types.get(node.type_, {}).items():
+            for pname, accept_data in pdata.items():
+                for accept_ntype, accept_ndata in accept_data.items():
+                    for accept_ptype, accept_pnames in accept_ndata.items():
+                        for accept_pname in accept_pnames:
+                            self._model.add_port_accept_connection_type(
+                                port_name=pname,
+                                port_type=ptype,
+                                node_type=node.type_,
+                                accept_pname=accept_pname,
+                                accept_ptype=accept_ptype,
+                                accept_ntype=accept_ntype
+                            )
+        reject_types = node.model.__dict__.pop(
+            '_TEMP_reject_connection_types'
+        )
+        for ptype, pdata in reject_types.get(node.type_, {}).items():
+            for pname, reject_data in pdata.items():
+                for reject_ntype, reject_ndata in reject_data.items():
+                    for reject_ptype, reject_pnames in reject_ndata.items():
+                        for reject_pname in reject_pnames:
+                            self._model.add_port_reject_connection_type(
+                                port_name=pname,
+                                port_type=ptype,
+                                node_type=node.type_,
+                                reject_pname=reject_pname,
+                                reject_ptype=reject_ptype,
+                                reject_ntype=reject_ntype
+                            )
+
         node._graph = self
         node.NODE_NAME = self.get_unique_name(node.NODE_NAME)
         node.model._graph_model = self.model
@@ -1209,13 +1366,13 @@ class NodeGraph(QtCore.QObject):
                     p.set_locked(False,
                                  connected_ports=False,
                                  push_undo=push_undo)
-                p.clear_connections()
+                p.clear_connections(push_undo=push_undo)
             for p in node.output_ports():
                 if p.locked():
                     p.set_locked(False,
                                  connected_ports=False,
                                  push_undo=push_undo)
-                p.clear_connections()
+                p.clear_connections(push_undo=push_undo)
 
         # collapse group node before removing.
         if isinstance(node, GroupNode) and node.is_expanded:
@@ -1256,13 +1413,13 @@ class NodeGraph(QtCore.QObject):
                     p.set_locked(False,
                                  connected_ports=False,
                                  push_undo=push_undo)
-                p.clear_connections()
+                p.clear_connections(push_undo=push_undo)
             for p in node.output_ports():
                 if p.locked():
                     p.set_locked(False,
                                  connected_ports=False,
                                  push_undo=push_undo)
-                p.clear_connections()
+                p.clear_connections(push_undo=push_undo)
 
         if push_undo:
             self._undo_stack.push(NodeRemovedCmd(self, node))
@@ -1285,7 +1442,9 @@ class NodeGraph(QtCore.QObject):
             return
         node_ids = [n.id for n in nodes]
         if push_undo:
-            self._undo_stack.beginMacro('deleted "{}" nodes'.format(len(nodes)))
+            self._undo_stack.beginMacro(
+                'deleted "{}" node(s)'.format(len(nodes))
+            )
         for node in nodes:
 
             # collapse group node before removing.
@@ -1312,6 +1471,54 @@ class NodeGraph(QtCore.QObject):
         if push_undo:
             self._undo_stack.endMacro()
         self.nodes_deleted.emit(node_ids)
+
+    def extract_nodes(self, nodes, push_undo=True, prompt_warning=True):
+        """
+        Extract select nodes from it connections.
+
+        Args:
+            nodes (list[NodeGraphQt.BaseNode]): list of node instances.
+            push_undo (bool): register the command to the undo stack. (default: True)
+            prompt_warning (bool): prompt warning dialog box.
+        """
+        if not nodes:
+            return
+
+        locked_ports = []
+        base_nodes = []
+        for node in nodes:
+            if not isinstance(node, BaseNode):
+                continue
+
+            for port in node.input_ports() + node.output_ports():
+                if port.locked():
+                    locked_ports.append('{0.node.name}: {0.name}'.format(port))
+
+            base_nodes.append(node)
+
+        if locked_ports:
+            message = (
+                'Selected nodes cannot be extracted because the following '
+                'ports are locked:\n{}'.format('\n'.join(sorted(locked_ports)))
+            )
+            if prompt_warning:
+                self._viewer.message_dialog(message, 'Can\'t Extract Nodes')
+            return
+
+        if push_undo:
+            self._undo_stack.beginMacro(
+                'extracted "{}" node(s)'.format(len(nodes))
+            )
+
+        for node in base_nodes:
+            for port in node.input_ports() + node.output_ports():
+                for connected_port in port.connected_ports():
+                    if connected_port.node() in base_nodes:
+                        continue
+                    port.disconnect_from(connected_port, push_undo=push_undo)
+
+        if push_undo:
+            self._undo_stack.endMacro()
 
     def all_nodes(self):
         """
@@ -1461,8 +1668,15 @@ class NodeGraph(QtCore.QObject):
         nodes_data = {}
 
         # serialize graph session.
+        serial_data['graph']['layout_direction'] = self.layout_direction()
         serial_data['graph']['acyclic'] = self.acyclic()
         serial_data['graph']['pipe_collision'] = self.pipe_collision()
+        serial_data['graph']['pipe_slicing'] = self.pipe_slicing()
+        serial_data['graph']['pipe_style'] = self.pipe_style()
+
+        # connection constrains.
+        serial_data['graph']['accept_connection_types'] = self.model.accept_connection_types
+        serial_data['graph']['reject_connection_types'] = self.model.reject_connection_types
 
         # serialize nodes.
         for n in nodes:
@@ -1519,10 +1733,22 @@ class NodeGraph(QtCore.QObject):
         """
         # update node graph properties.
         for attr_name, attr_value in data.get('graph', {}).items():
-            if attr_name == 'acyclic':
+            if attr_name == 'layout_direction':
+                self.set_layout_direction(attr_value)
+            elif attr_name == 'acyclic':
                 self.set_acyclic(attr_value)
             elif attr_name == 'pipe_collision':
                 self.set_pipe_collision(attr_value)
+            elif attr_name == 'pipe_slicing':
+                self.set_pipe_slicing(attr_value)
+            elif attr_name == 'pipe_style':
+                self.set_pipe_style(attr_value)
+
+            # connection constrains.
+            elif attr_name == 'accept_connection_types':
+                self.model.accept_connection_types = attr_value
+            elif attr_name == 'reject_connection_types':
+                self.model.reject_connection_types = attr_value
 
         # build the nodes.
         nodes = {}
@@ -1573,6 +1799,9 @@ class NodeGraph(QtCore.QObject):
                                         in_port.model.multi_connection])
                 if allow_connection:
                     self._undo_stack.push(PortConnectedCmd(in_port, out_port))
+
+                # Run on_input_connected to ensure connections are fully set up after deserialization.
+                in_node.on_input_connected(in_port, out_port)
 
         node_objs = nodes.values()
         if relative_pos:
@@ -1750,6 +1979,9 @@ class NodeGraph(QtCore.QObject):
     def paste_nodes(self):
         """
         Pastes nodes copied from the clipboard.
+        
+        Returns:
+            list[NodeGraphQt.BaseNode]: list of pasted node instances.
         """
         clipboard = QtWidgets.QApplication.clipboard()
         cb_text = clipboard.text()
@@ -1768,6 +2000,7 @@ class NodeGraph(QtCore.QObject):
         nodes = self._deserialize(serial_data, relative_pos=True)
         [n.set_selected(True) for n in nodes]
         self._undo_stack.endMacro()
+        return nodes
 
     def duplicate_nodes(self, nodes):
         """
@@ -1797,27 +2030,44 @@ class NodeGraph(QtCore.QObject):
 
     def disable_nodes(self, nodes, mode=None):
         """
-        Set weather to Disable or Enable specified nodes.
+        Toggle nodes to be either disabled or enabled state.
 
         See Also:
             :meth:`NodeObject.set_disabled`
 
         Args:
-            nodes (list[NodeGraphQt.BaseNode]): list of node instances.
-            mode (bool): (optional) disable state of the nodes.
+            nodes (list[NodeGraphQt.BaseNode]): list of nodes.
+            mode (bool): (optional) override state of the nodes.
         """
         if not nodes:
             return
-        if mode is None:
-            mode = not nodes[0].disabled()
-        if len(nodes) > 1:
-            text = {False: 'enable', True: 'disable'}[mode]
-            text = '{} ({}) nodes'.format(text, len(nodes))
+
+        if len(nodes) == 1:
+            if mode is None:
+                mode = not nodes[0].disabled()
+            nodes[0].set_disabled(mode)
+            return
+
+        if mode is not None:
+            states = {False: 'enable', True: 'disable'}
+            text = '{} ({}) nodes'.format(states[mode], len(nodes))
             self._undo_stack.beginMacro(text)
             [n.set_disabled(mode) for n in nodes]
             self._undo_stack.endMacro()
             return
-        nodes[0].set_disabled(mode)
+
+        text = []
+        enabled_count = len([n for n in nodes if n.disabled()])
+        disabled_count = len([n for n in nodes if not n.disabled()])
+        if enabled_count > 0:
+            text.append('enabled ({})'.format(enabled_count))
+        if disabled_count > 0:
+            text.append('disabled ({})'.format(disabled_count))
+        text = ' / '.join(text) + ' nodes'
+
+        self._undo_stack.beginMacro(text)
+        [n.set_disabled(not n.disabled()) for n in nodes]
+        self._undo_stack.endMacro()
 
     def use_OpenGL(self):
         """
@@ -2117,10 +2367,14 @@ class NodeGraph(QtCore.QObject):
         # build new sub graph.
         node_factory = copy.deepcopy(self.node_factory)
         layout_direction = self.layout_direction()
+        kwargs = {
+            'layout_direction': self.layout_direction(),
+            'pipe_style': self.pipe_style(),
+        }
         sub_graph = SubGraph(self,
                              node=node,
                              node_factory=node_factory,
-                             layout_direction=layout_direction)
+                             **kwargs)
 
         # populate the sub graph.
         session = node.get_sub_graph_session()
@@ -2162,9 +2416,11 @@ class NodeGraph(QtCore.QObject):
 class SubGraph(NodeGraph):
     """
     The ``SubGraph`` class is just like the ``NodeGraph`` but is the main
-    controller for managing the expanded node graph for a group node.
+    controller for managing the expanded node graph for a
+    :class:`NodeGraphQt.GroupNode`.
 
-    Inherited from: :class:`NodeGraphQt.NodeGraph`
+    .. inheritance-diagram:: NodeGraphQt.SubGraph
+        :top-classes: PySide2.QtCore.QObject
 
     .. image:: _images/sub_graph.png
         :width: 70%

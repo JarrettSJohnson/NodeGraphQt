@@ -115,6 +115,20 @@
       },
       {
         "type":"command",
+        "label":"Extract",
+        "file":"../examples/hotkeys/hotkey_functions.py",
+        "function_name":"extract_nodes",
+        "shortcut":"Ctrl+Shift+X"
+      },
+      {
+        "type":"command",
+        "label":"Clear Connections",
+        "file":"../examples/hotkeys/hotkey_functions.py",
+        "function_name":"clear_node_connections",
+        "shortcut":"Ctrl+D"
+      },
+      {
+        "type":"command",
         "label":"Fit to Selection",
         "file":"../examples/hotkeys/hotkey_functions.py",
         "function_name":"fit_to_selection",
@@ -251,21 +265,21 @@
         "label":"Curved",
         "file":"../examples/hotkeys/hotkey_functions.py",
         "function_name":"curved_pipe",
-        "shortcut":""
+        "shortcut":"Ctrl+1"
       },
       {
         "type":"command",
         "label":"Straight",
         "file":"../examples/hotkeys/hotkey_functions.py",
         "function_name":"straight_pipe",
-        "shortcut":""
+        "shortcut":"Ctrl+2"
       },
       {
         "type":"command",
         "label":"Angle",
         "file":"../examples/hotkeys/hotkey_functions.py",
         "function_name":"angle_pipe",
-        "shortcut":""
+        "shortcut":"Ctrl+3"
       }
     ]
   }
