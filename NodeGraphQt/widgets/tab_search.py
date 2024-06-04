@@ -43,6 +43,13 @@ class TabSearchCompleter(QtWidgets.QCompleter):
 
     def setModel(self, model):
         self._source_model = model
+
+        try:
+            from PyQt5.QtCore import QSortFilterProxyModel
+            QtCore.QSortFilterProxyModel = QSortFilterProxyModel
+        except ImportError:
+            pass
+
         self._filter_model = QtCore.QSortFilterProxyModel(self)
         self._filter_model.setSourceModel(self._source_model)
         super(TabSearchCompleter, self).setModel(self._filter_model)

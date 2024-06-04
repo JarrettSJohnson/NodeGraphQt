@@ -115,6 +115,11 @@ class NodesGridDelagate(QtWidgets.QStyledItemDelegate):
         painter.drawText(text_rect, item.text())
         painter.restore()
 
+try:
+    from PyQt5.QtCore import QSortFilterProxyModel
+    QtCore.QSortFilterProxyModel = QSortFilterProxyModel
+except ImportError:
+    pass
 
 class NodesGridProxyModel(QtCore.QSortFilterProxyModel):
 
